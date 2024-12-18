@@ -249,7 +249,7 @@ function mirrorMoveUCI(move: string): string {
 
 export function policy2moves(board_: Chess, policy_tensor: any, softmax_temp: number = 1.61): { [key: string]: number } {
     // console.log(MOVE_MAP);
-    const board = (board_.turn() as Color === 'w') ? board_ : mirrorBoardVertically(board_);
+    const board = (board_.turn() === 'w') ? board_ : mirrorBoardVertically(board_);
     let policy = policy_tensor;
 
     let moves = Array.from(board.moves({ verbose: true })).map(m => {
@@ -267,10 +267,12 @@ export function policy2moves(board_: Chess, policy_tensor: any, softmax_temp: nu
         // console.log(fixed_uci);
         // console.log(MOVE_MAP[fixed_uci]);
 
-        let p: number = policy[MOVE_MAP[fixed_uci]];
         // console.log(p);
-        if (board_.turn() as Color === 'b') {
+        let p: number = policy[MOVE_MAP[fixed_uci]];
+        if (board_.turn() === 'b') {
+            // console.log("before mirror: ", uci);
             uci = mirrorMoveUCI(uci);
+            // console.log("after mirror:", uci);
         } 
         retval[uci] = p;
         if (p > max_p) {

@@ -7,15 +7,23 @@ export function mirrorBoardVertically(board: Chess): Chess {
 
     // Mirror the board part of the FEN string
     const boardRows = parts[0].split('/');
-    const mirroredRows = boardRows.reverse().join('/');
+    const mirroredRows = boardRows.reverse().map(row => 
+        row.split('').map(char => 
+            char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()
+        ).join('')
+    ).join('/');
 
     // Construct the new FEN string with the mirrored board
-    const mirroredFen = [mirroredRows, ...parts.slice(1)].join(' ');
-
+    
     // Change the turn color in the FEN string
+    // console.log(parts[1]);
     parts[1] = parts[1] === 'w' ? 'b' : 'w';
-
+    parts[2] = parts[2].split('').map(char => 
+        char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()
+    ).join('');
+    // console.log(parts[1]);
     // Load the mirrored FEN into the new Chess instance
+    const mirroredFen = [mirroredRows, ...parts.slice(1)].join(' ');
     mirroredBoard.load(mirroredFen);
     return mirroredBoard;
 }

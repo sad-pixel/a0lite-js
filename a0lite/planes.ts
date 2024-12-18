@@ -7,7 +7,7 @@ function appendPlane(planes: number[][][], ones: boolean): number[][][] {
 }
 
 export function board2planes(board_: Chess): number[][][] {
-    const board = (board_.turn() as Color) ? board_ : mirrorBoardVertically(board_);
+    const board = (board_.turn() as Color === "w") ? board_ : mirrorBoardVertically(board_);
     let retval: number[][][] = Array.from({ length: 13 }, () => 
         Array.from({ length: 8 }, () => 
             Array(8).fill(0)
