@@ -1,78 +1,118 @@
 // import * as ort from 'onnxruntime-web';
 import * as readlineSync from 'readline-sync';
+import * as readline from 'readline';
+import * as fs from 'fs';
+
 import { Chess } from 'chess.js';
 
 import { parseUCICommand } from './a0lite/uci';
-import { NeuralNetwork } from './a0lite/network';
+import { getModelPath, NeuralNetwork } from './a0lite/network';
 import { board2planes } from './a0lite/planes';
-import { policy2moves } from './a0lite/policy';
+import { moves2bestmove, policy2moves } from './a0lite/policy';
 
-function main() {
+const logStream = fs.createWriteStream('/Users/ishan/a0lite-log.txt', { flags: 'a' });
+
+function logOutput(message: string) {
+    console.log(message);
+    logStream.write(message + '\n');
+}
+
+async function main() {
+    // logOutput("a0lite-js v0.0.1");
     const network = new NeuralNetwork();
-    while (true) {
-        const command = readlineSync.question();
-        const uciCommand = parseUCICommand(command);
-    
-        switch (uciCommand.type) {
-            case 'uci':
-                console.log('id name a0lite-js');
-                console.log('id author Ishan Das Sharma');
-                console.log('uciok');
-                break;
-            case 'quit':
-                process.exit(0);
-                break;
-            case 'isready':
-                network.loadModel('./nets/maia9.onnx');
-                console.log('readyok');
-                break;
-            case 'ucinewgame':
-                // Start a new game here
-                const chess = new Chess();
+    let pos = '';
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        terminal: true
+    });
 
-                (async function playGame() {
+    for await (const command of rl) {
+        if (command !== undefined) {
+            const uciCommand = parseUCICommand(command);
+            const chess = new Chess();
+            switch (uciCommand.type) {
+                case 'uci':
+                    logOutput('id name a0lite-js');
+                    logOutput('id author Ishan Das Sharma');
+                    logOutput('uciok');
+                    break;
+                case 'quit':
+                    process.exit(0);
+                    break;
+                case 'isready':
+                    await network.loadModel(getModelPath('maia9.onnx'));
+                    logOutput('readyok');
+                    break;
+                case 'ucinewgame':
                     if (!network.initialized()) {
-                        await network.loadModel('./nets/maia9.onnx');
+                        await network.loadModel(getModelPath('maia9.onnx'));
                     }
-
-                    while (!chess.isGameOver()) {
-                        const planes = board2planes(chess);
-                        try {
-                            const output = await network.predict([planes]);
-                            if (output) {
-                                // console.log('Prediction output:', output);
-                                const moves = policy2moves(chess, output["/output/policy"].data);
-                                const bestMove = Object.keys(moves).reduce((a, b) => moves[a] > moves[b] ? a : b);
-                                console.log('bestmove', bestMove);
-                                try {
-                                    chess.move(bestMove);
-                                } catch {
-                                    console.log(chess.ascii());
-                                    console.error('Invalid move:', bestMove);
-                                    console.log(moves);
-                                    break;
-                                }
-                            } else {
-                                console.log('Failed to get prediction.');
-                            }
-                        } catch (error) {
-                            console.error('Error during prediction:', error);
+                    chess.reset();
+                    break;
+                case 'position':
+                    if (uciCommand.args && uciCommand.args.length > 0) {
+                        if (uciCommand.args[0] === 'startpos') {
+                            chess.reset()
+                            pos = chess.fen();
+                        } else {
+                            pos = uciCommand.args.slice(1).join(' ');
                         }
                     }
-                    console.log('Game over. Final PGN:', chess.pgn());
-                })();
-                break;
-            case 'position':
-                // Handle position command here
-                break;
-            case 'go':
-                // Handle go command here
-                break;
-            default:
-                console.log('Unknown command:', command);
-                break;
+                    break;
+                case 'go':
+                    chess.reset()
+                    chess.load(pos);
+                    const planes = board2planes(chess);
+                    const output = await network.predict([planes]);
+                    if (output) {
+                        const moves = policy2moves(chess, output['/output/policy'].data);
+                        const bestMove = moves2bestmove(moves);
+                        logOutput(`bestmove ${bestMove}`);
+                    }
+                    break;
+                default:
+                    logOutput('Unknown command: ' + command);
+                    break;
+            }
         }
     }
 }
 
-main();
+async function selfplay() {
+    const network = new NeuralNetwork();
+    await network.loadModel('./nets/badgyal.onnx');
+
+    let chess = new Chess();
+    while (!chess.isGameOver()) {
+        const planes = board2planes(chess);
+        try {
+            const output = await network.predict([planes]);
+            if (output) {
+                const moves = policy2moves(chess, output["/output/policy"].data);
+                const bestMove = moves2bestmove(moves);
+                logOutput('bestmove ' + bestMove);
+                try {
+                    chess.move(bestMove);
+                } catch {
+                    logOutput(chess.ascii());
+                    logOutput('Invalid move: ' + bestMove);
+                    logOutput(JSON.stringify(moves));
+                    break;
+                }
+            } else {
+                logOutput('Failed to get prediction.');
+            }
+        } catch (error) {
+            logOutput('Error during prediction: ' + error);
+        }
+    }
+    logOutput('Game over. Final PGN: ' + chess.pgn());
+}
+
+const args = process.argv.slice(2);
+if (args.includes('--selfplay')) {
+    selfplay();
+} else {
+    main();
+}
