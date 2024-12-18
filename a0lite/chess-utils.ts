@@ -13,15 +13,21 @@ export function mirrorBoardVertically(board: Chess): Chess {
         ).join('')
     ).join('/');
 
-    // Construct the new FEN string with the mirrored board
-    
     // Change the turn color in the FEN string
-    // console.log(parts[1]);
     parts[1] = parts[1] === 'w' ? 'b' : 'w';
+    
+    // Mirror the castling rights
     parts[2] = parts[2].split('').map(char => 
         char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()
     ).join('');
-    // console.log(parts[1]);
+
+    // Mirror the en passant square if it exists
+    if (parts[3] !== '-') {
+        const file = parts[3][0];
+        const rank = parts[3][1];
+        parts[3] = file + (9 - parseInt(rank)).toString();
+    }
+
     // Load the mirrored FEN into the new Chess instance
     const mirroredFen = [mirroredRows, ...parts.slice(1)].join(' ');
     mirroredBoard.load(mirroredFen);
