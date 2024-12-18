@@ -257,13 +257,23 @@ export function policy2moves(board_: Chess, policy_tensor: any, softmax_temp: nu
         if (m.promotion) {
             uciMove += m.promotion;
         }
-        return uciMove;
+        return { uci: uciMove, san: m.san };
     });
     let retval: { [key: string]: number } = {};
     let max_p: number = Number.NEGATIVE_INFINITY;
 
-    for (let uci of moves) {
-        let fixed_uci: string = uci;
+    for (let m of moves) {
+        let fixed_uci: string = m.uci;
+        let uci: string = m.uci
+
+        if (uci === 'e1g1' && m.san === 'O-O') {
+            fixed_uci = 'e1h1';
+        }
+
+        if (uci === 'e1c1' && m.san == 'O-O-O') {
+            fixed_uci = 'e1a1';
+        }
+
         // console.log(fixed_uci);
         // console.log(MOVE_MAP[fixed_uci]);
 
