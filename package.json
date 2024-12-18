@@ -1,0 +1,17 @@
+{
+  "name": "a0lite-js",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/readline-sync": "^1.4.8",
+    "chess.js": "^1.0.0-beta.8",
+    "onnxruntime-web": "^1.20.1",
+    "readline-sync": "^1.4.10"
+  }
+}
