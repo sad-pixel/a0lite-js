@@ -1,4 +1,5 @@
 import * as ort from 'onnxruntime-web';
+import * as path from 'path';
 
 export class NeuralNetwork {
     private model: ort.InferenceSession | null;
@@ -14,7 +15,7 @@ export class NeuralNetwork {
     async loadModel(modelPath: string): Promise<void> {
         try {
             this.model = await ort.InferenceSession.create(modelPath);
-            console.log('Model loaded successfully.');
+            // console.log('Model loaded successfully.');
         } catch (error) {
             console.error('Failed to load model:', error);
         }
@@ -34,4 +35,8 @@ export class NeuralNetwork {
             return null;
         }
     }
+}
+
+export function getModelPath(modelName: string): string {
+    return path.join(__dirname, '..', 'nets', 'maia9.onnx')
 }

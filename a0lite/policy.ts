@@ -294,3 +294,6 @@ export function policy2moves(board_: Chess, policy_tensor: any, softmax_temp: nu
     return retval;
 }
 
+export function moves2bestmove(moves: {[key: string]: number}) {
+    return Object.keys(moves).reduce((a, b) => moves[a] > moves[b] ? a : b)
+}
