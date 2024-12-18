@@ -44,7 +44,14 @@ function main() {
                                 const moves = policy2moves(chess, output["/output/policy"].data);
                                 const bestMove = Object.keys(moves).reduce((a, b) => moves[a] > moves[b] ? a : b);
                                 console.log('bestmove', bestMove);
-                                chess.move(bestMove);
+                                try {
+                                    chess.move(bestMove);
+                                } catch {
+                                    console.log(chess.ascii());
+                                    console.error('Invalid move:', bestMove);
+                                    console.log(moves);
+                                    break;
+                                }
                             } else {
                                 console.log('Failed to get prediction.');
                             }
