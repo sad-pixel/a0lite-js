@@ -17,10 +17,12 @@ export class UCTSearch {
     private network: NeuralNetwork;
     private cpuct: number = 2.5;
     private positionHistory: Set<string>;
+    private legacyNetwork: boolean = false;
     
-    constructor(network: NeuralNetwork) {
+    constructor(network: NeuralNetwork, legacyNetwork: boolean = false) {
         this.network = network;
         this.positionHistory = new Set();
+        this.legacyNetwork = legacyNetwork;
     }
 
     private async expandNode(node: Node): Promise<void> {
@@ -33,10 +35,14 @@ export class UCTSearch {
 
         const moves = policy2moves(node.position, output['/output/policy'].data);
         let value = 0;
-        try {
+        if (this.legacyNetwork) {
             value = Number(output['/output/value'].data[0]);
-        } catch {
-            
+        } else {
+            const p_win = Number(output['/output/wdl'].data[0]);
+            const p_draw = Number(output['/output/wdl'].data[1]);
+            const p_loss = Number(output['/output/wdl'].data[2]);
+            value = p_win + (0.5*p_draw) - p_loss;
+            console.log(value);
         }
         
         node.value = value;
