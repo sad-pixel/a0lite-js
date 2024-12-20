@@ -113,12 +113,12 @@ async function uctselfplay() {
     while (!chess.isGameOver()) {
         try {
             const currentEngine = useFirstEngine ? engine1 : engine2;
-            const bestMove = await currentEngine.getBestMove(true, 100000, 100);
+            const bestMove = await currentEngine.getBestMove(true, 100000, 1000);
             logOutput('bestmove ' + bestMove);
             try {
                 chess.move(bestMove);
-                currentEngine.setPosition(chess.fen());
-                (!useFirstEngine ? engine1 : engine2).setPosition(chess.fen());
+                currentEngine.setPositionWithHistory(chess);
+                (!useFirstEngine ? engine1 : engine2).setPositionWithHistory(chess);
             } catch {
                 logOutput(chess.ascii());
                 logOutput('Invalid move: ' + bestMove);

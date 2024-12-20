@@ -51,6 +51,10 @@ export class Engine {
         // console.log(this.position.fen());
     }
 
+    public setPositionWithHistory(position: Chess) {
+        this.position = position.copy();
+    }
+
     public async getBestMove(useSearch: boolean = true, numSimulations?: number, timeLimit?: number): Promise<string> {
         if (!this.network.initialized()) {
             throw new Error('Engine not initialized');
