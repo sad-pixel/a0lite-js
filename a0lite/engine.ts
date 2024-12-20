@@ -1,4 +1,4 @@
-import { Chess } from './chess.ts';
+import { Chess, type Color } from './chess.ts';
 import { NeuralNetwork } from './network';
 import { board2planes } from './planes';
 import { moves2bestmove, policy2moves } from './policy';
@@ -72,6 +72,14 @@ export class Engine {
 
     public getPosition(): Chess {
         return this.position.copy();
+    }
+
+    public sideToMove(): Color {
+        return this.position.turn();
+    }
+
+    public getMovesCount(): number {
+        return this.position.moveNumber();
     }
 
     public getMoves(): string[] {

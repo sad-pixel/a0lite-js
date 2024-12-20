@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { parseUCICommand } from './a0lite/uci';
 import { Engine } from './a0lite/engine';
+import { getAllocatedTime } from './a0lite/time-management';
 
 const logStream = fs.createWriteStream('/Users/ishan/a0lite-log.txt', { flags: 'a' });
 
@@ -53,7 +54,13 @@ async function main() {
                     }
                     break;
                 case 'go':
-                    const bestMove = await engine.getBestMove(true, 1600);
+                    const wtime = parseInt(uciCommand.args![1]);
+                    const btime = parseInt(uciCommand.args![3]);
+                    const sideToMove = engine.sideToMove();
+                    const timeRemaining = (sideToMove === 'w') ? wtime : btime;
+                    const moveNumber = engine.getMovesCount();
+                    const timeToUse = getAllocatedTime(moveNumber, timeRemaining)
+                    const bestMove = await engine.getBestMove(true, 100000, timeToUse);
                     logOutput(`bestmove ${bestMove}`);
                     break;
                 default:
