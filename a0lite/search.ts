@@ -5,179 +5,144 @@ import { policy2moves, moves2bestmove } from './policy';
 
 interface Node {
     parent: Node | null;
-    children: Node[];
+    children: Map<string, Node>;
     move: string | null;
+    isExpanded: boolean;
+    totalValue: number;
     visits: number;
-    value: number;
     prior: number;
     position: Chess;
-    wdl?: [number, number, number]; // Store win/draw/loss probabilities
 }
+
+const FPU = -1.0;
+const FPU_ROOT = 0.0;
 
 export class UCTSearch {
     private network: NeuralNetwork;
-    private cpuct: number = 3.1;
-    private positionHistory: Set<string>;
-    private legacyNetwork: boolean = false;
+    private cpuct: number = 1;
     
-    constructor(network: NeuralNetwork, legacyNetwork: boolean = false) {
+    constructor(network: NeuralNetwork) {
         this.network = network;
-        this.positionHistory = new Set();
-        this.legacyNetwork = legacyNetwork;
     }
 
-    private async expandNode(node: Node): Promise<void> {
+    private Q(node: Node): number {
+        return node.totalValue / (1 + node.visits);
+    }
+
+    private U(node: Node): number {
+        return Math.sqrt(node.parent!.visits) * node.prior / (1 + node.visits);
+    }
+
+    private selectBestChild(node: Node): Node {
+        let bestScore = -Infinity;
+        let bestChild: Node | null = null;
+
+        for (const child of node.children.values()) {
+            const score = this.Q(child) + this.cpuct * this.U(child);
+            if (score > bestScore) {
+                bestScore = score;
+                bestChild = child;
+            }
+        }
+        return bestChild!;
+    }
+
+    private selectLeaf(root: Node): Node {
+        let current = root;
+        while (current.isExpanded && current.children.size > 0) {
+            current = this.selectBestChild(current);
+        }
+        if (!current.position && current.parent) {
+            current.position = current.parent.position.copy();
+            current.position.move(current.move!);
+        }
+        return current;
+    }
+
+    private async expandNode(node: Node): Promise<[number, Map<string, number>]> {
         const planes = board2planes(node.position);
         const output = await this.network.predict([planes]);
         
         if (!output) {
-            return;
+            return [0, new Map()];
         }
 
         const moves = policy2moves(node.position, output['/output/policy'].data);
-        let value = 0;
-        if (this.legacyNetwork) {
-            value = Number(output['/output/value'].data[0]);
-            // Flip value if black to move since network evaluates from white's perspective
-            if (node.position.turn() === 'b') {
-                value = -value;
-            }
-        } else {
-            const p_win = Number(output['/output/wdl'].data[0]);
-            const p_draw = Number(output['/output/wdl'].data[1]);
-            const p_loss = Number(output['/output/wdl'].data[2]);
-            
-            if (node.position.turn() === 'w') {
-                value = p_win;
-                node.wdl = [p_win, p_draw, p_loss];
-            } else {
-                value = p_loss; // From black's perspective, white's loss is black's win
-                node.wdl = [p_loss, p_draw, p_win]; // Flip win/loss probabilities for black
-            }
-        }
+        const value = Number(output['/output/wdl'].data[0]);
         
-        node.value = value;
+        node.isExpanded = true;
+        node.children = new Map();
         
         for (const [move, prior] of Object.entries(moves)) {
-            const newPosition = node.position.copy();
-            try {
-                newPosition.move(move);
-                // Skip moves that lead to repeated positions
-                if (this.positionHistory.has(newPosition.fen())) {
-                    continue;
-                }
-                const child: Node = {
-                    parent: node,
-                    children: [],
-                    move: move,
-                    visits: 0,
-                    value: 0,
-                    prior: prior,
-                    position: newPosition
-                };
-                node.children.push(child);
-            } catch (error) {
-                console.error(`Invalid move during expansion: ${move}`);
-            }
+            const child: Node = {
+                parent: node,
+                children: new Map(),
+                move: move,
+                isExpanded: false,
+                totalValue: node.parent === null ? FPU_ROOT : FPU,
+                visits: 0,
+                prior: prior,
+                position: null!
+            };
+            node.children.set(move, child);
         }
+
+        return [value, new Map(Object.entries(moves))];
     }
 
-    private selectChild(node: Node): Node {
-        let bestScore = -Infinity;
-        let bestChild: Node | null = null;
-        
-        const parentVisits = Math.sqrt(node.visits);
-        
-        for (const child of node.children) {
-            if (child.visits === 0) {
-                return child;
-            }
-            
-            const ucb = child.value + 
-                       this.cpuct * child.prior * parentVisits / (1 + child.visits);
-            
-            if (ucb > bestScore) {
-                bestScore = ucb;
-                bestChild = child;
-            }
+    private backup(node: Node, value: number): void {
+        let current = node;
+        let turnFactor = -1;
+        while (current.parent !== null) {
+            current.visits += 1;
+            current.totalValue += value * turnFactor;
+            current = current.parent;
+            turnFactor *= -1;
         }
-        
-        return bestChild!;
-    }
-
-    private async search(root: Node, numSimulations: number, timeLimit?: number): Promise<void> {
-        const startTime = Date.now();
-        
-        for (let i = 0; i < numSimulations; i++) {
-            // Check if we've exceeded time limit
-            if (timeLimit && Date.now() - startTime > timeLimit) {
-                break;
-            }
-            
-            let node = root;
-            
-            // Selection
-            while (node.children.length > 0) {
-                node = this.selectChild(node);
-            }
-            
-            // Expansion
-            if (node.visits > 0 && !node.position.isGameOver()) {
-                await this.expandNode(node);
-                if (node.children.length > 0) {
-                    node = node.children[0];
-                }
-            }
-            
-            // Backpropagation
-            let value = node.value;
-            while (node !== null) {
-                node.visits++;
-                node.value += value;
-                value = -value;
-                if (node.parent === null) break;
-                node = node.parent;
-            }
-        }
+        current.visits += 1;
     }
 
     public async getBestMove(position: Chess, numSimulations: number = 800, timeLimit?: number): Promise<string> {
-        // Reset position history for new search
-        this.positionHistory = new Set();
-        // Add current position to history
-        this.positionHistory.add(position.fen());
-        // console.log(this.positionHistory);
+        const startTime = Date.now();
+        let count = 0;
+
         const root: Node = {
             parent: null,
-            children: [],
+            children: new Map(),
             move: null,
+            isExpanded: false,
+            totalValue: FPU_ROOT,
             visits: 0,
-            value: 0,
             prior: 1.0,
             position: position.copy()
         };
-        
-        await this.expandNode(root);
-        await this.search(root, numSimulations, timeLimit);
-        
-        // Select move with most visits
+
+        for (let i = 0; i < numSimulations; i++) {
+            count++;
+            
+            if (timeLimit && Date.now() - startTime > timeLimit) {
+                break;
+            }
+
+            const leaf = this.selectLeaf(root);
+            const [value, childPriors] = await this.expandNode(leaf);
+            this.backup(leaf, value);
+        }
+
+        return this.getBestMoveFromRoot(root);
+    }
+
+    private getBestMoveFromRoot(root: Node): string {
         let bestVisits = -1;
         let bestMove = '';
-        let bestValue = 0;
-        let bestWDL: [number, number, number] | undefined;
         
-        for (const child of root.children) {
+        for (const [move, child] of root.children.entries()) {
             if (child.visits > bestVisits) {
                 bestVisits = child.visits;
-                bestMove = child.move!;
-                bestValue = child.value / child.visits;
-                bestWDL = child.wdl;
+                bestMove = move;
             }
         }
         
-
-        // console.log("value: ", bestValue);
-        // console.log("wdl:", bestWDL);
         return bestMove;
     }
 }
