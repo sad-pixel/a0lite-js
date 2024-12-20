@@ -48,6 +48,7 @@ export class Engine {
                 break;
             }
         }
+        // console.log(this.position.fen());
     }
 
     public async getBestMove(useSearch: boolean = true, numSimulations?: number, timeLimit?: number): Promise<string> {

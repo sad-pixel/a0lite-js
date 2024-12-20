@@ -61,6 +61,7 @@ async function main() {
                     const moveNumber = engine.getMovesCount();
                     const timeToUse = getAllocatedTime(moveNumber, timeRemaining)
                     const bestMove = await engine.getBestMove(true, 100000, timeToUse);
+                    // console.log(engine.getPosition().ascii());
                     logOutput(`bestmove ${bestMove}`);
                     break;
                 default:

@@ -11,11 +11,12 @@ interface Node {
     value: number;
     prior: number;
     position: Chess;
+    wdl?: [number, number, number]; // Store win/draw/loss probabilities
 }
 
 export class UCTSearch {
     private network: NeuralNetwork;
-    private cpuct: number = 2.5;
+    private cpuct: number = 3.1;
     private positionHistory: Set<string>;
     private legacyNetwork: boolean = false;
     
@@ -37,12 +38,22 @@ export class UCTSearch {
         let value = 0;
         if (this.legacyNetwork) {
             value = Number(output['/output/value'].data[0]);
+            // Flip value if black to move since network evaluates from white's perspective
+            if (node.position.turn() === 'b') {
+                value = -value;
+            }
         } else {
             const p_win = Number(output['/output/wdl'].data[0]);
             const p_draw = Number(output['/output/wdl'].data[1]);
             const p_loss = Number(output['/output/wdl'].data[2]);
-            value = p_win + (0.5*p_draw) - p_loss;
-            console.log(value);
+            
+            if (node.position.turn() === 'w') {
+                value = p_win;
+                node.wdl = [p_win, p_draw, p_loss];
+            } else {
+                value = p_loss; // From black's perspective, white's loss is black's win
+                node.wdl = [p_loss, p_draw, p_win]; // Flip win/loss probabilities for black
+            }
         }
         
         node.value = value;
@@ -135,7 +146,7 @@ export class UCTSearch {
         this.positionHistory = new Set();
         // Add current position to history
         this.positionHistory.add(position.fen());
-        
+        // console.log(this.positionHistory);
         const root: Node = {
             parent: null,
             children: [],
@@ -152,14 +163,21 @@ export class UCTSearch {
         // Select move with most visits
         let bestVisits = -1;
         let bestMove = '';
+        let bestValue = 0;
+        let bestWDL: [number, number, number] | undefined;
         
         for (const child of root.children) {
             if (child.visits > bestVisits) {
                 bestVisits = child.visits;
                 bestMove = child.move!;
+                bestValue = child.value / child.visits;
+                bestWDL = child.wdl;
             }
         }
         
+
+        // console.log("value: ", bestValue);
+        // console.log("wdl:", bestWDL);
         return bestMove;
     }
 }
