@@ -1,4 +1,4 @@
-import { Chess } from 'chess.js';
+import { Chess } from './chess.ts';
 import { NeuralNetwork } from './network';
 import { board2planes } from './planes';
 import { policy2moves, moves2bestmove } from './policy';
@@ -15,10 +15,12 @@ interface Node {
 
 export class UCTSearch {
     private network: NeuralNetwork;
-    private cpuct: number = 3.0;
+    private cpuct: number = 2.5;
+    private positionHistory: Set<string>;
     
     constructor(network: NeuralNetwork) {
         this.network = network;
+        this.positionHistory = new Set();
     }
 
     private async expandNode(node: Node): Promise<void> {
@@ -40,9 +42,13 @@ export class UCTSearch {
         node.value = value;
         
         for (const [move, prior] of Object.entries(moves)) {
-            const newPosition = new Chess(node.position.fen());
+            const newPosition = node.position.copy();
             try {
                 newPosition.move(move);
+                // Skip moves that lead to repeated positions
+                if (this.positionHistory.has(newPosition.fen())) {
+                    continue;
+                }
                 const child: Node = {
                     parent: node,
                     children: [],
@@ -82,8 +88,15 @@ export class UCTSearch {
         return bestChild!;
     }
 
-    private async search(root: Node, numSimulations: number): Promise<void> {
+    private async search(root: Node, numSimulations: number, timeLimit?: number): Promise<void> {
+        const startTime = Date.now();
+        
         for (let i = 0; i < numSimulations; i++) {
+            // Check if we've exceeded time limit
+            if (timeLimit && Date.now() - startTime > timeLimit) {
+                break;
+            }
+            
             let node = root;
             
             // Selection
@@ -111,7 +124,12 @@ export class UCTSearch {
         }
     }
 
-    public async getBestMove(position: Chess, numSimulations: number = 800): Promise<string> {
+    public async getBestMove(position: Chess, numSimulations: number = 800, timeLimit?: number): Promise<string> {
+        // Reset position history for new search
+        this.positionHistory = new Set();
+        // Add current position to history
+        this.positionHistory.add(position.fen());
+        
         const root: Node = {
             parent: null,
             children: [],
@@ -119,11 +137,11 @@ export class UCTSearch {
             visits: 0,
             value: 0,
             prior: 1.0,
-            position: new Chess(position.fen())
+            position: position.copy()
         };
         
         await this.expandNode(root);
-        await this.search(root, numSimulations);
+        await this.search(root, numSimulations, timeLimit);
         
         // Select move with most visits
         let bestVisits = -1;
@@ -139,4 +157,3 @@ export class UCTSearch {
         return bestMove;
     }
 }
-

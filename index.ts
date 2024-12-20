@@ -53,7 +53,7 @@ async function main() {
                     }
                     break;
                 case 'go':
-                    const bestMove = await engine.getBestMove(true, 10000);
+                    const bestMove = await engine.getBestMove(true, 1600);
                     logOutput(`bestmove ${bestMove}`);
                     break;
                 default:
@@ -67,8 +67,8 @@ async function main() {
 async function selfplay() {
     const engine1 = new Engine();
     const engine2 = new Engine();
-    await engine1.init('./nets/badgyal.onnx');
-    await engine2.init('./nets/maia9.onnx');
+    await engine1.init('./nets/lc0.onnx');
+    await engine2.init('./nets/lc0.onnx');
 
     let chess = engine1.getPosition();
     let useFirstEngine = true;
@@ -97,15 +97,15 @@ async function selfplay() {
 async function uctselfplay() {
     const engine1 = new Engine();
     const engine2 = new Engine();
-    await engine1.init('./nets/maia9.onnx');
-    await engine2.init('./nets/badgyal.onnx');
+    await engine1.init('./nets/lc0.onnx');
+    await engine2.init('./nets/lc0.onnx');
 
     let chess = engine1.getPosition();
     let useFirstEngine = true;
     while (!chess.isGameOver()) {
         try {
             const currentEngine = useFirstEngine ? engine1 : engine2;
-            const bestMove = await currentEngine.getBestMove(true, 100);
+            const bestMove = await currentEngine.getBestMove(true, 100000, 100);
             logOutput('bestmove ' + bestMove);
             try {
                 chess.move(bestMove);
@@ -126,7 +126,7 @@ async function uctselfplay() {
 
 const args = process.argv.slice(2);
 if (args.includes('--selfplay')) {
-    selfplay();
+    uctselfplay();
 } else {
     main();
 }

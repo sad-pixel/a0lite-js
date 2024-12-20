@@ -1,4 +1,4 @@
-import { Chess } from 'chess.js';
+import { Chess } from './chess.ts';
 import { NeuralNetwork } from './network';
 import { board2planes } from './planes';
 import { moves2bestmove, policy2moves } from './policy';
@@ -50,13 +50,13 @@ export class Engine {
         }
     }
 
-    public async getBestMove(useSearch: boolean = true, numSimulations: number = 1000000): Promise<string> {
+    public async getBestMove(useSearch: boolean = true, numSimulations?: number, timeLimit?: number): Promise<string> {
         if (!this.network.initialized()) {
             throw new Error('Engine not initialized');
         }
 
         if (useSearch && this.search) {
-            return await this.search.getBestMove(this.position, numSimulations);
+            return await this.search.getBestMove(this.position, numSimulations, timeLimit);
         }
 
         const planes = board2planes(this.position);
@@ -71,7 +71,7 @@ export class Engine {
     }
 
     public getPosition(): Chess {
-        return new Chess(this.position.fen());
+        return this.position.copy();
     }
 
     public getMoves(): string[] {

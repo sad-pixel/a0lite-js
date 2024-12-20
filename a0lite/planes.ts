@@ -1,4 +1,4 @@
-import { Chess, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, type Piece, type Color } from 'chess.js';
+import { Chess, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, type Piece, type Color } from './chess.ts';
 import { mirrorBoardVertically, pieceMap, type PieceType } from './chess-utils';
 
 function appendPlane(planes: number[][][], ones: boolean): number[][][] {

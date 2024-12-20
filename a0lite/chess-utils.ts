@@ -1,4 +1,4 @@
-import { Chess, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, type Piece } from 'chess.js';
+import { Chess, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, type Piece } from './chess.ts';
 
 export function mirrorBoardVertically(board: Chess): Chess {
     const mirroredBoard = new Chess();
@@ -63,3 +63,4 @@ export const pieceMap: { [key in PieceType]: { piece: Piece, step: number } } = 
     BQ: { piece: BQUEEN, step: 10 },
     BK: { piece: BKING, step: 11 }
 };
+

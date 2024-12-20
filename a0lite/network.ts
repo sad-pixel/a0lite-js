@@ -38,5 +38,5 @@ export class NeuralNetwork {
 }
 
 export function getModelPath(modelName: string): string {
-    return path.join(__dirname, '..', 'nets', 'maia9.onnx')
+    return path.join(__dirname, '..', 'nets', 'lc0.onnx')
 }
