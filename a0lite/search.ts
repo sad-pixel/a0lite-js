@@ -69,13 +69,17 @@ export class UCTSearch {
         }
 
         const moves = policy2moves(node.position, output['/output/policy'].data);
-        const value = Number(output['/output/wdl'].data[0]);
-        const wdl: [number, number, number] = [
-            Number(output['/output/wdl'].data[0]),
-            Number(output['/output/wdl'].data[1]), 
-            Number(output['/output/wdl'].data[2])
-        ];
-        node.wdl = wdl;
+        const value = (!this.network.isLegacyModel()) ? Number(output['/output/wdl'].data[0]) : Number(output['/output/value'].data[0]);
+        
+        if (!this.network.isLegacyModel()) {
+            const wdl: [number, number, number] = [
+                Number(output['/output/wdl'].data[0]),
+                Number(output['/output/wdl'].data[1]), 
+                Number(output['/output/wdl'].data[2])
+            ];
+            node.wdl = wdl;
+        }
+
         node.isExpanded = true;
         node.children = new Map();
         
@@ -129,6 +133,7 @@ export class UCTSearch {
             count++;
             
             if (timeLimit && Date.now() - startTime > timeLimit) {
+                console.log('info string simulations', i, 'nps', (i/(timeLimit/1000)));
                 break;
             }
 

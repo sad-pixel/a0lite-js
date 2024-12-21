@@ -3,9 +3,11 @@ import * as path from 'path';
 
 export class NeuralNetwork {
     private model: ort.InferenceSession | null;
+    private isLegacy: boolean;
 
     constructor() {
         this.model = null;
+        this.isLegacy = true;
     }
 
     public initialized(): boolean {
@@ -15,10 +17,17 @@ export class NeuralNetwork {
     async loadModel(modelPath: string): Promise<void> {
         try {
             this.model = await ort.InferenceSession.create(modelPath);
+            if (this.model.outputNames.includes("/output/wdl")) {
+                this.isLegacy = false;
+            }
             // console.log('Model loaded successfully.');
         } catch (error) {
             console.error('Failed to load model:', error);
         }
+    }
+
+    public isLegacyModel(): boolean {
+        return this.isLegacy;
     }
 
     async predict(inputData: number[][][][]): Promise<ort.InferenceSession.OnnxValueMapType | null> {
