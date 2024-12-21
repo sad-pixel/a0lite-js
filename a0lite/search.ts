@@ -151,6 +151,13 @@ export class UCTSearch {
             // Check if this move leads to a repetition by looking at position history
             let testPosition = root.position.copy();
             testPosition.move(move);
+
+            // Early exit if a mate in 1 is found.
+            if (testPosition.isCheckmate()) {
+                console.log('info string using early mate in 1 exit');
+                return move;
+            }
+            
             if (testPosition.isThreefoldRepetition()) {
                 score *= 0.1;
                 console.log('info string this move leads to 3fold: ', move);
