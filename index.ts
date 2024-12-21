@@ -108,7 +108,27 @@ async function uctselfplay() {
     await engine1.init('./nets/lc0.onnx');
     await engine2.init('./nets/lc0.onnx');
 
+    // Load and parse ECO codes
+    const ecoData = JSON.parse(await fs.readFileSync('./eco_codes_uci.json', 'utf8'));
+    
+    // Pick random opening position
+    const randomOpening = ecoData[Math.floor(Math.random() * ecoData.length)];
+    const uciMoves = randomOpening.UCIMoves.split(' ');
+    console.log("playing in position: ", randomOpening.ECO, randomOpening.Name);
+
     let chess = engine1.getPosition();
+    
+    // Play out the opening moves
+    for (const uciMove of uciMoves) {
+        chess.move(uciMove);
+    }
+
+    // Set position for both engines
+    engine1.setPositionWithHistory(chess);
+    engine2.setPositionWithHistory(chess);
+
+    logOutput(`Starting from opening: ${randomOpening.Name}`);
+
     let useFirstEngine = true;
     while (!chess.isGameOver()) {
         try {

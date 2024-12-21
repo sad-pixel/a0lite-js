@@ -13,7 +13,7 @@ a0lite-js is a TypeScript port of the original [dkappe/a0lite](https://github.co
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/a0lite-js.git
+   git clone https://github.com/sad-pixel/a0lite-js.git
    cd a0lite-js
    ```
 
