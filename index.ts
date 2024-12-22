@@ -75,37 +75,7 @@ async function main() {
 async function selfplay() {
     const engine1 = new Engine();
     const engine2 = new Engine();
-    await engine1.init('./nets/lc0.onnx');
-    await engine2.init('./nets/lc0.onnx');
-
-    let chess = engine1.getPosition();
-    let useFirstEngine = true;
-    while (!chess.isGameOver()) {
-        try {
-            const currentEngine = useFirstEngine ? engine1 : engine2;
-            const bestMove = await currentEngine.getBestMove(false);
-            logOutput('bestmove ' + bestMove);
-            try {
-                chess.move(bestMove);
-                currentEngine.setPosition(chess.fen());
-                (!useFirstEngine ? engine1 : engine2).setPosition(chess.fen());
-            } catch {
-                logOutput(chess.ascii());
-                logOutput('Invalid move: ' + bestMove);
-                break;
-            }
-        } catch (error) {
-            logOutput('Error during prediction: ' + error);
-        }
-        useFirstEngine = !useFirstEngine;
-    }
-    logOutput('Game over. Final PGN: ' + chess.pgn());
-}
-
-async function uctselfplay() {
-    const engine1 = new Engine();
-    const engine2 = new Engine();
-    await engine1.init('./nets/lc0.onnx');
+    await engine1.init('./nets/maia9.onnx');
     await engine2.init('./nets/lc0.onnx');
 
     // Load and parse ECO codes
@@ -114,7 +84,6 @@ async function uctselfplay() {
     // Pick random opening position
     const randomOpening = ecoData[Math.floor(Math.random() * ecoData.length)];
     const uciMoves = randomOpening.UCIMoves.split(' ');
-    console.log("playing in position: ", randomOpening.ECO, randomOpening.Name);
 
     let chess = engine1.getPosition();
     
@@ -127,13 +96,18 @@ async function uctselfplay() {
     engine1.setPositionWithHistory(chess);
     engine2.setPositionWithHistory(chess);
 
-    logOutput(`Starting from opening: ${randomOpening.Name}`);
+    logOutput(`Starting from opening: ${randomOpening.ECO}: ${randomOpening.Name} (FEN: ${chess.fen()})`);
+
+    // Determine who plays which color based on number of opening moves
+    const isEngine1White = chess.turn() === 'w';
+    const whiteEngine = isEngine1White ? "Engine1" : "Engine2";
+    const blackEngine = isEngine1White ? "Engine2" : "Engine1";
 
     let useFirstEngine = true;
     while (!chess.isGameOver()) {
         try {
             const currentEngine = useFirstEngine ? engine1 : engine2;
-            const bestMove = await currentEngine.getBestMove(true, 100000, 1000);
+            const bestMove = await currentEngine.getBestMove(true, 100000, 500);
             logOutput('bestmove ' + bestMove);
             try {
                 chess.move(bestMove);
@@ -149,12 +123,15 @@ async function uctselfplay() {
         }
         useFirstEngine = !useFirstEngine;
     }
-    logOutput('Game over. Final PGN: ' + chess.pgn());
+    logOutput('Game over. Final PGN:');
+    logOutput(`[White "${whiteEngine}"]`);
+    logOutput(`[Black "${blackEngine}"]`);
+    logOutput(chess.pgn());
 }
 
 const args = process.argv.slice(2);
 if (args.includes('--selfplay')) {
-    uctselfplay();
+    selfplay();
 } else {
     main();
 }

@@ -2,12 +2,27 @@
 
 a0lite-js is a TypeScript port of the original [dkappe/a0lite](https://github.com/dkappe/a0lite) project. It is designed to work with lc0 networks that have been converted to the ONNX format.
 
-**Note:** This project is a Work In Progress (WIP). It is not able to play a full chess game yet! 
+You can play against the bot on Lichess as [`A0lite-js`](https://lichess.org/@/A0lite-js). Current ratings:
+
+[![lichess-rapid](https://lichess-shield.vercel.app/api?username=A0lite-js&format=bullet)](https://lichess.org/@/A0lite-js/perf/bullet)
+[![lichess-rapid](https://lichess-shield.vercel.app/api?username=A0lite-js&format=blitz)](https://lichess.org/@/A0lite-js/perf/blitz)
+[![lichess-rapid](https://lichess-shield.vercel.app/api?username=A0lite-js&format=rapid)](https://lichess.org/@/A0lite-js/perf/rapid)
+
+[Challenge Bot](https://lichess.org/?user=A0lite-js#friend)
+
+### Known Limitations
+
+The engine currently has some weaknesses:
+- May miss obvious checkmates
+- Can fall into threefold repetition in winning positions
+- Basic time management system
+
+These are being actively worked on for future improvements.
 
 ### Prerequisites
 
-- Bun installed on your machine.
-- ONNX Runtime for JavaScript.
+- Bun installed on your machine
+- lc0 installed for network conversion
 
 ### Installation
 
@@ -22,7 +37,7 @@ a0lite-js is a TypeScript port of the original [dkappe/a0lite](https://github.co
    bun install
    ```
 
-3. Use the `lc0` command to convert your network to ONNX format by running the following command:
+3. Convert an LC0 network to ONNX format:
    ```bash
    lc0 leela2onnx --input=<path-to-network-file> --output=<path-to-output-onnx-file>
    ```
