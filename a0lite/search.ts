@@ -15,10 +15,14 @@ interface Node {
     wdl: [number, number, number];
 }
 
+export interface Search {
+    getBestMove(position: Chess, numSimulations?: number, timeLimit?: number): Promise<string>;
+}
+
 const FPU = -1.0;
 const FPU_ROOT = 0.0;
 
-export class UCTSearch {
+export class UCTSearch implements Search {
     private network: NeuralNetwork;
     private cpuct: number = 3.1;
     
@@ -163,22 +167,23 @@ export class UCTSearch {
                 return move;
             }
             
-            if (testPosition.isThreefoldRepetition()) {
+            if (testPosition.isDraw()) {
                 score *= 0.1;
-                console.log('info string this move leads to 3fold: ', move);
+                console.log('info string this move leads to draw: ', move);
                 console.log('info string wdl', child.wdl);
                 console.log('info string value', child.totalValue);
                 console.log('info string visits', child.visits);
             } else {
-                // Check if any legal moves after this one lead to 3fold
+                // Check legal moves after this one
                 const legalMoves = testPosition.moves();
                 for (const nextMove of legalMoves) {
                     let nextPosition = testPosition.copy();
                     nextPosition.move(nextMove);
-                    if (nextPosition.isThreefoldRepetition()) {
-                        // Penalize moves that allow opponent to force 3fold
+
+                    // Penalize moves that allow opponent to force draw or mate in 1
+                    if (nextPosition.isDraw() || nextPosition.isCheckmate()) {
                         score *= 0.1;
-                        console.log('info string opponent can force 3fold: ', nextMove);
+                        console.log('info string opponent can force draw or mate: ', nextMove);
                         break;
                     }
                 }
